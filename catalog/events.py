@@ -218,8 +218,14 @@ def main():
     """Печатает отчёт о файле. Код 1 в конце означает, что есть ошибки."""
     # Без этой строки русский текст может отображаться неправильно на Windows.
     sys.stdout.reconfigure(encoding="utf-8")
+    # Импорт здесь, потому что archives.py сам использует функции из этого файла.
+    from catalog.archives import read_archives
+
     events, errors, warnings = read_catalog()
-    print(f"Годных записей: {len(events)}. Сегодня в Казахстане: {today_kz()}")
+    archives, archive_errors = read_archives()
+    errors = errors + archive_errors
+    print(f"Годных записей: {len(events)}. Заданий прошлых лет: {len(archives)}.")
+    print(f"Сегодня в Казахстане: {today_kz()}")
     for problem in errors:
         print("ОШИБКА:", problem)
     for problem in warnings:

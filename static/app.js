@@ -10,6 +10,8 @@ const PRICE_TIERS = ["2000", "5000", "15000", "25000", "over25000"];
 const state = {
   texts: {},
   events: [],
+  archives: [],
+  dataToday: null, // день, когда сервер подготовил данные
   tab: "closing",
   filters: emptyFilters(),
   savedIds: [],
@@ -110,8 +112,22 @@ function updateClock() {
   if (newToday !== state.today) {
     state.today = newToday;
     byId("date").min = newToday;
+    updateOfflineNote();
     render();
   }
+}
+
+// Честно предупреждает, если интернета нет или данные загружены не сегодня.
+function updateOfflineNote() {
+  const note = byId("offline-note");
+  const isOld = state.dataToday !== null && state.dataToday !== state.today;
+  note.hidden = state.dataToday === null || (navigator.onLine && !isOld);
+  if (!note.hidden) note.textContent = `${t("offline_note")}: ${formatDate(state.dataToday)}`;
+}
+
+// Подпись на кнопке называет тему, на которую можно переключиться.
+function updateThemeButton() {
+  byId("theme-toggle").textContent = t(currentTheme() === "dark" ? "theme_to_light" : "theme_to_dark");
 }
 
 // ---------- Сохранение ----------
@@ -196,8 +212,40 @@ function importSavedFromLink() {
 
 // ---------- Карточка события ----------
 
-function makeRow(label, value) {
-  return makeElement("p", "event-row", `${t(label)}: ${value}`);
+function makeRow(label, value, className = "event-row") {
+  return makeElement("p", className, `${t(label)}: ${value}`);
+}
+
+// Ссылка на чужой сайт, которая открывается в новой вкладке.
+function makeLink(text, href) {
+  const link = makeElement("a", "event-link", text);
+  link.href = href;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer"; // чужой сайт не получит доступа к нашей вкладке
+  return link;
+}
+
+// Карточка заданий прошлых лет. Ссылки ведут на сайт организатора.
+function makeArchiveCard(item) {
+  const card = makeElement("article", "event-card");
+  const badges = makeElement("div", "badges");
+  if (item.is_example) badges.append(makeElement("span", "badge badge-example", t("example_badge")));
+  badges.append(makeElement("span", "badge", t("archive_badge")));
+  badges.append(makeElement("span", "badge", item.season));
+  card.append(badges);
+
+  card.append(makeElement("h2", "event-title", item.title));
+  if (item.stage) card.append(makeElement("p", "event-stage", item.stage));
+  card.append(makeElement("p", "event-row", item.subjects.map((subject) => t(`subject_${subject}`)).join(", ")));
+  card.append(makeElement("p", "event-row", `${t("grades")}: ${item.grade_from}–${item.grade_to} · ${item.country}`));
+
+  const links = makeElement("div", "card-links");
+  links.append(makeLink(t("archive_tasks"), item.tasks_url));
+  if (item.solutions_url) links.append(makeLink(t("archive_solutions"), item.solutions_url));
+  card.append(links);
+
+  card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(item.last_checked)}`));
+  return card;
 }
 
 function makeCard(event) {
@@ -217,7 +265,10 @@ function makeCard(event) {
     const days = daysUntil(event.registration_deadline, state.today);
     const text = days === 0 ? t("last_day") : `${t("days_left")}: ${days}`;
     const color = getUrgency(event.registration_deadline, state.today);
-    badges.append(makeElement("span", `badge urgency-${color}`, text));
+    if (color) {
+      badges.append(makeElement("span", `badge urgency-${color}`, text));
+      card.classList.add(`card-${color}`); // цветная полоска на краю карточки
+    }
   }
   card.append(badges);
 
@@ -240,15 +291,19 @@ function makeCard(event) {
   // У учебных материалов нет дат регистрации.
   if (!isMaterial) {
     card.append(makeRow("registration_start", formatDate(event.registration_start)));
-    card.append(makeRow("deadline", formatDate(event.registration_deadline)));
+    card.append(makeRow("deadline", formatDate(event.registration_deadline), "event-row event-deadline"));
     card.append(makeRow("event_date", formatDate(event.event_date)));
   }
 
-  const link = makeElement("a", "event-link", t("official_source"));
-  link.href = event.source_url;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer"; // чужой сайт не получит доступа к нашей вкладке
-  card.append(link);
+  const links = makeElement("div", "card-links");
+  links.append(makeLink(t("official_source"), event.source_url));
+  // Задания этой же олимпиады за прошлые годы.
+  if (event.series_id) {
+    state.archives
+      .filter((item) => item.series_id === event.series_id)
+      .forEach((item) => links.append(makeLink(`${t("past_tasks")} ${item.season}`, item.tasks_url)));
+  }
+  card.append(links);
 
   card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(event.last_checked)}`));
   card.append(makeSaveButtons(event));
@@ -271,7 +326,8 @@ function buildForm() {
   const grades = Array.from({ length: 11 }, (_, index) => String(index + 1));
   fillSelect("grade", [["", t("any")], ...grades.map((grade) => [grade, grade])]);
 
-  const seasons = [...new Set(state.events.map((event) => event.season).filter(Boolean))].sort().reverse();
+  const allRecords = [...state.events, ...state.archives];
+  const seasons = [...new Set(allRecords.map((record) => record.season).filter(Boolean))].sort().reverse();
   fillSelect("season", [["", t("any")], ...seasons.map((season) => [season, season])]);
 
   fillSelect("type", [["", t("any")], ...["olympiad", "contest", "material"].map((type) => [type, t(`type_${type}`)])]);
@@ -279,7 +335,7 @@ function buildForm() {
   fillSelect("cost", [["", t("any_cost")], ["free", t("cost_free")], ["paid", t("cost_paid")]]);
   fillSelect("price-tier", [["", t("any_cost")], ...PRICE_TIERS.map((tier) => [tier, t(`price_${tier}`)])]);
 
-  const subjects = [...new Set(state.events.flatMap((event) => event.subjects))]
+  const subjects = [...new Set(allRecords.flatMap((record) => record.subjects))]
     .sort((a, b) => t(`subject_${a}`).localeCompare(t(`subject_${b}`), t("locale")));
   byId("subjects").replaceChildren(...subjects.map((subject) => {
     const chip = makeElement("button", "chip", t(`subject_${subject}`));
@@ -341,7 +397,9 @@ function resetFilters() {
 
 // Считает выбранные условия для подписи на кнопке «Фильтры».
 function countActiveFilters() {
-  const { search, region, subjects, ...others } = state.filters;
+  // Во вкладке «Подготовка» часть полей скрыта, их не считаем.
+  const used = state.tab === "prepare" ? prepareOnly(state.filters) : state.filters;
+  const { search, region, subjects, ...others } = used;
   const filled = Object.values(others).filter((value) => value !== "" && value !== null).length;
   return filled + subjects.length;
 }
@@ -369,28 +427,34 @@ function render() {
   });
 
   byId("search-form").hidden = isSavedTab;
-  byId("date-field").hidden = tab === "prepare"; // у материалов нет регистрации
-  byId("price-field").hidden = filters.cost !== "paid";
+  // У материалов и заданий нет регистрации, поэтому лишние поля скрываем.
+  const isPrepareTab = tab === "prepare";
+  ["date-field", "age-field", "type-field", "format-field", "cost-field"].forEach((id) => {
+    byId(id).hidden = isPrepareTab;
+  });
+  byId("price-field").hidden = isPrepareTab || filters.cost !== "paid";
 
   const count = countActiveFilters();
   byId("filter-count").hidden = count === 0;
   byId("filter-count").textContent = String(count);
 
   const found = eventsForTab(state.events, tab, filters, state.today, state.savedIds);
-  byId("event-list").replaceChildren(...found.map(makeCard));
+  const archives = isPrepareTab ? archivesForFilters(state.archives, filters) : [];
+  byId("event-list").replaceChildren(...archives.map(makeArchiveCard), ...found.map(makeCard));
 
   byId("transfer").hidden = !isSavedTab || state.savedIds.length === 0;
 
+  const total = found.length + archives.length;
   const hasFilters = count > 0 || filters.search !== "" || filters.region !== "";
-  const isEmpty = found.length === 0;
+  const isEmpty = total === 0;
   byId("empty-reset").hidden = !(isEmpty && !isSavedTab && hasFilters);
 
   if (isEmpty) {
     byId("message").textContent = t(`empty_${tab}`);
   } else if (tab === "closing") {
-    byId("message").textContent = `${t("title_closing")}. ${t("found")}: ${found.length}`;
+    byId("message").textContent = `${t("title_closing")}. ${t("found")}: ${total}`;
   } else {
-    byId("message").textContent = `${t("found")}: ${found.length}`;
+    byId("message").textContent = `${t("found")}: ${total}`;
   }
 }
 
@@ -405,6 +469,16 @@ function applyTexts() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
     element.placeholder = t(element.dataset.i18nPlaceholder);
   });
+  document.querySelectorAll("[data-i18n-label]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nLabel));
+  });
+  updateThemeButton();
+}
+
+// Подключает офлайн-режим. Браузер разрешает его только на HTTPS и на этом компьютере.
+function registerOfflineMode() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("/sw.js").catch((error) => console.error(error));
 }
 
 function connectEvents() {
@@ -433,6 +507,12 @@ function connectEvents() {
   byId("reset").addEventListener("click", resetFilters);
   byId("empty-reset").addEventListener("click", resetFilters);
   byId("make-link").addEventListener("click", makeTransferLink);
+  byId("theme-toggle").addEventListener("click", () => {
+    toggleTheme();
+    updateThemeButton();
+  });
+  window.addEventListener("online", updateOfflineNote);
+  window.addEventListener("offline", updateOfflineNote);
 }
 
 // Загружает JSON с сервера. Если сервер вернул ошибку, сообщает об этом.
@@ -451,6 +531,8 @@ async function start() {
 
     const data = await loadJson("/api/events");
     state.events = data.events;
+    state.archives = data.archives;
+    state.dataToday = data.today;
     state.filters = loadFilters();
     state.savedIds = loadSavedIds();
 
@@ -459,8 +541,9 @@ async function start() {
     connectEvents();
     importSavedFromLink();
 
-    // Показываем сообщение об импорте, а render его не трогает.
+    updateOfflineNote();
     render();
+    registerOfflineMode();
   } catch (error) {
     console.error(error);
     byId("message").textContent = t("catalog_error") === "catalog_error"

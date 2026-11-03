@@ -1,5 +1,6 @@
-/* Оформление. Цвета заданы переменными: на шаге 8 тёмная тема просто заменит их. */
+/* Оформление. Все цвета заданы переменными: тёмная тема просто заменяет их. */
 :root {
+  color-scheme: light;
   --background: #f5f6f8;
   --surface: #ffffff;
   --text: #1c2230;
@@ -8,9 +9,61 @@
   --soft: #e8ebf0;
   --accent: #2851c8;
   --on-accent: #ffffff;
+  --example: #1c2230;
+  --on-example: #ffffff;
   --red: #b3261e;
+  --on-red: #ffffff;
   --yellow: #f2c037;
+  --on-yellow: #1c2230;
   --green: #1e7f4f;
+  --on-green: #ffffff;
+  --shadow: 0 1px 3px rgba(28, 34, 48, 0.08);
+}
+
+/* Тёмная тема по настройкам устройства, если пользователь не выбрал светлую. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #12151c;
+    --surface: #1c212b;
+    --text: #edf0f5;
+    --muted: #a3acba;
+    --border: #333a47;
+    --soft: #2a303c;
+    --accent: #8fb0ff;
+    --on-accent: #10172b;
+    --example: #edf0f5;
+    --on-example: #12151c;
+    --red: #f28b82;
+    --on-red: #3c0d09;
+    --yellow: #f2c037;
+    --on-yellow: #1c2230;
+    --green: #6fd6a2;
+    --on-green: #06281a;
+    --shadow: none;
+  }
+}
+
+/* Тёмная тема, выбранная кнопкой. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #12151c;
+  --surface: #1c212b;
+  --text: #edf0f5;
+  --muted: #a3acba;
+  --border: #333a47;
+  --soft: #2a303c;
+  --accent: #8fb0ff;
+  --on-accent: #10172b;
+  --example: #edf0f5;
+  --on-example: #12151c;
+  --red: #f28b82;
+  --on-red: #3c0d09;
+  --yellow: #f2c037;
+  --on-yellow: #1c2230;
+  --green: #6fd6a2;
+  --on-green: #06281a;
+  --shadow: none;
 }
 
 * {
@@ -33,29 +86,44 @@ body {
 .page {
   max-width: 720px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 20px 16px 40px;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 16px;
 }
 
 .page-header h1 {
   margin: 0;
   font-size: 1.75rem;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .clock {
-  margin: 4px 0 16px;
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 0.875rem;
 }
 
-/* Вкладки */
-.tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 16px;
+.theme-toggle {
+  font-size: 0.875rem;
 }
 
+.banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--yellow);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+/* Кнопки, вкладки и переключатели */
 .tab,
 .segment,
 .chip,
@@ -67,11 +135,28 @@ body {
   color: var(--text);
   font: inherit;
   cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.tab:active,
+.segment:active,
+.chip:active,
+.button:active {
+  transform: scale(0.98);
+}
+
+.tabs {
+  display: grid;
+  /* Вкладке «Подготовка» нужно больше места, чем остальным. */
+  grid-template-columns: 0.9fr 0.7fr 1.3fr 0.7fr;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .tab {
-  padding: 8px 4px;
-  font-size: 0.9375rem;
+  min-width: 0;
+  padding: 8px 2px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -82,6 +167,15 @@ body {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
+}
+
+.button {
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.button-secondary {
+  background: var(--soft);
 }
 
 :focus-visible {
@@ -98,6 +192,7 @@ body {
 
 .field {
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--border);
@@ -114,6 +209,7 @@ body {
 }
 
 .segment {
+  min-width: 0;
   padding: 8px 4px;
   font-size: 0.875rem;
 }
@@ -132,6 +228,17 @@ body {
   min-height: 40px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.filters summary::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.filters[open] summary::after {
+  transform: rotate(180deg);
 }
 
 .filter-count {
@@ -155,6 +262,7 @@ body {
   display: grid;
   align-content: end;
   gap: 4px;
+  min-width: 0;
   font-size: 0.875rem;
 }
 
@@ -179,16 +287,6 @@ body {
 .filters .button {
   width: 100%;
   margin: 12px 0 8px;
-}
-
-/* Кнопки */
-.button {
-  padding: 8px 14px;
-  font-weight: 600;
-}
-
-.button-secondary {
-  background: var(--soft);
 }
 
 /* Сообщения и перенос */
@@ -216,7 +314,7 @@ body {
 /* Карточки */
 .event-list {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .event-card {
@@ -224,8 +322,30 @@ body {
   padding: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
   overflow-wrap: anywhere;
+  animation: card-appear 0.18s ease-out;
+}
+
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Цветная полоска срочности на краю карточки. */
+.card-red {
+  border-left: 5px solid var(--red);
+}
+
+.card-yellow {
+  border-left: 5px solid var(--yellow);
+}
+
+.card-green {
+  border-left: 5px solid var(--green);
 }
 
 .event-title {
@@ -249,9 +369,20 @@ body {
   font-size: 0.9375rem;
 }
 
+.event-deadline {
+  font-weight: 700;
+}
+
+.card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+}
+
 .event-link {
   display: inline-block;
-  margin-top: 10px;
+  padding-block: 4px;
   color: var(--accent);
   font-weight: 600;
 }
@@ -284,22 +415,45 @@ body {
 }
 
 .badge-example {
-  background: var(--text);
-  color: var(--surface);
+  background: var(--example);
+  color: var(--on-example);
   font-weight: 700;
+}
+
+.status-closed {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .urgency-red {
   background: var(--red);
-  color: #ffffff;
+  color: var(--on-red);
 }
 
 .urgency-yellow {
   background: var(--yellow);
-  color: #1c2230;
+  color: var(--on-yellow);
 }
 
 .urgency-green {
   background: var(--green);
-  color: #ffffff;
+  color: var(--on-green);
+}
+
+.page-footer {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.page-footer p {
+  margin: 4px 0;
+}
+
+/* Если человек отключил анимацию в настройках устройства, не показываем её. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

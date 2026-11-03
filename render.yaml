@@ -1,0 +1,10 @@
+# Настройки хостинга Render: как собрать и запустить приложение.
+services:
+  - type: web
+    name: olymp-app
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # gunicorn — сервер для работы в интернете. Встроенный сервер Flask подходит только для разработки.
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "example-math-archive-2025",
+    "is_example": true,
+    "series_id": "example-math-olympiad",
+    "title": "ПРИМЕР: Выдуманная олимпиада по математике",
+    "stage": "Региональный этап",
+    "subjects": ["math"],
+    "grade_from": 7,
+    "grade_to": 11,
+    "country": "Казахстан",
+    "season": "2025-2026",
+    "tasks_url": "https://example.org/math-olympiad/tasks-2025",
+    "solutions_url": "https://example.org/math-olympiad/solutions-2025",
+    "last_checked": "2026-11-04"
+  },
+  {
+    "id": "example-physics-archive-2024",
+    "is_example": true,
+    "series_id": null,
+    "title": "ПРИМЕР: Выдуманная международная олимпиада по физике",
+    "stage": null,
+    "subjects": ["physics"],
+    "grade_from": 9,
+    "grade_to": 11,
+    "country": "Международная",
+    "season": "2024-2025",
+    "tasks_url": "https://example.org/physics-olympiad/tasks-2024",
+    "solutions_url": null,
+    "last_checked": "2026-11-04"
+  }
+]

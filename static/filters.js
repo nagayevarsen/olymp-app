@@ -56,6 +56,18 @@ function matchesFilters(event, filters) {
   return matchesCost(event.fee_kzt, filters.cost, filters.priceTier);
 }
 
+// Во вкладке «Подготовка» важны только эти поля: дат регистрации и цены там нет.
+function prepareOnly(filters) {
+  const { search, grade, season, subjects, region } = filters;
+  return { ...emptyFilters(), search, grade, season, subjects, region };
+}
+
+// Отбирает задания прошлых лет.
+function archivesForFilters(archives, filters) {
+  const usedFilters = prepareOnly(filters);
+  return archives.filter((item) => matchesFilters(item, usedFilters));
+}
+
 // Возвращает события для вкладки: closing, all, prepare или saved.
 function eventsForTab(events, tab, filters, today, savedIds) {
   // «Мои» показывает всё сохранённое, включая закрытое: там статус честно виден.
@@ -69,8 +81,8 @@ function eventsForTab(events, tab, filters, today, savedIds) {
   ));
 
   if (tab === "prepare") {
-    const prepareFilters = { ...filters, date: "" };
-    return active.filter((event) => event.type === "material" && matchesFilters(event, prepareFilters));
+    const usedFilters = prepareOnly(filters);
+    return active.filter((event) => event.type === "material" && matchesFilters(event, usedFilters));
   }
 
   const usedFilters = { ...filters, date };
@@ -88,5 +100,5 @@ function eventsForTab(events, tab, filters, today, savedIds) {
 
 // Эта часть нужна только для тестов в Node.js. В браузере она не выполняется.
 if (typeof module !== "undefined") {
-  module.exports = { emptyFilters, matchesFilters, eventsForTab };
+  module.exports = { emptyFilters, matchesFilters, eventsForTab, archivesForFilters, prepareOnly };
 }

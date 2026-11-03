@@ -4,15 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Поиск олимпиад</title>
+  <meta name="description" content="Действующие олимпиады, конкурсы и материалы для подготовки">
+  <!-- Цвет панели браузера на телефоне для светлой и тёмной темы. -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#12151c">
+  <!-- Эти строки позволяют установить приложение на экран телефона. -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </head>
 <body>
   <main class="page">
     <header class="page-header">
-      <h1 data-i18n="app_title">Поиск олимпиад</h1>
-      <!-- Текущие дата и время в Казахстане. -->
-      <p id="clock" class="clock"></p>
+      <div>
+        <h1 data-i18n="app_title">Поиск олимпиад</h1>
+        <!-- Текущие дата и время в Казахстане. -->
+        <p id="clock" class="clock"></p>
+      </div>
+      <button id="theme-toggle" type="button" class="button button-secondary theme-toggle"></button>
     </header>
+
+    <!-- Появляется, когда нет интернета или данные загружены не сегодня. -->
+    <p id="offline-note" class="banner" role="status" hidden></p>
 
     <nav class="tabs">
       <button type="button" class="tab" data-tab="closing" data-i18n="tab_closing"></button>
@@ -23,7 +38,7 @@
 
     <!-- Форма поиска. Она ничего не отправляет на сервер: отбор идёт в браузере. -->
     <form id="search-form" class="search-form">
-      <input id="search" class="field" type="search" autocomplete="off" data-i18n-placeholder="search_placeholder">
+      <input id="search" class="field" type="search" autocomplete="off" data-i18n-placeholder="search_placeholder" data-i18n-label="search_placeholder">
 
       <div class="segments">
         <button type="button" class="segment" data-region="" data-i18n="region_any"></button>
@@ -37,7 +52,7 @@
           <label><span data-i18n="filter_grade"></span>
             <select id="grade" class="field"></select>
           </label>
-          <label><span data-i18n="filter_age"></span>
+          <label id="age-field"><span data-i18n="filter_age"></span>
             <input id="age" class="field" type="number" min="3" max="30" inputmode="numeric">
           </label>
           <label id="date-field"><span data-i18n="filter_date"></span>
@@ -46,13 +61,13 @@
           <label><span data-i18n="filter_season"></span>
             <select id="season" class="field"></select>
           </label>
-          <label><span data-i18n="filter_type"></span>
+          <label id="type-field"><span data-i18n="filter_type"></span>
             <select id="type" class="field"></select>
           </label>
-          <label><span data-i18n="filter_format"></span>
+          <label id="format-field"><span data-i18n="filter_format"></span>
             <select id="format" class="field"></select>
           </label>
-          <label><span data-i18n="filter_cost"></span>
+          <label id="cost-field"><span data-i18n="filter_cost"></span>
             <select id="cost" class="field"></select>
           </label>
           <label id="price-field" hidden><span data-i18n="filter_price"></span>
@@ -75,6 +90,11 @@
     <p id="message" class="message" role="status">Загрузка…</p>
     <button id="empty-reset" type="button" class="button button-secondary" data-i18n="reset_filters" hidden></button>
     <section id="event-list" class="event-list"></section>
+
+    <footer class="page-footer">
+      <p data-i18n="privacy_note"></p>
+      <p data-i18n="source_note"></p>
+    </footer>
   </main>
 
   <!-- Порядок важен: filters.js и app.js используют функции из dates.js. -->
