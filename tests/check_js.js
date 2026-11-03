@@ -95,12 +95,12 @@ function idsFor(tab, filterChanges = {}, saved = []) {
 }
 
 check("вкладка 14 дней", idsFor("closing"), ["red"]);
-check("вкладка всё без закрытых", idsFor("all"), ["red", "later", "soon", "material"]);
+check("вкладка всё без закрытых и материалов", idsFor("all"), ["red", "later", "soon"]);
 check("вкладка подготовка", idsFor("prepare"), ["material"]);
 check("подготовка не зависит от даты", idsFor("prepare", { date: "2026-12-02" }), ["material"]);
 check("14 дней считаются от выбранной даты", idsFor("closing", { date: "2026-12-02" }), ["soon"]);
 check("вкладка всё с датой", idsFor("all", { date: "2026-12-02" }), ["later", "soon"]);
-check("прошлая дата не возвращает закрытое", idsFor("all", { date: "2026-11-05" }), ["red", "later", "soon", "material"]);
+check("прошлая дата не возвращает закрытое", idsFor("all", { date: "2026-11-05" }), ["red", "later", "soon"]);
 check("мои показывают и закрытое", idsFor("saved", { grade: 11 }, ["closed", "red"]), ["red", "closed"]);
 
 // Часть 4. Задания прошлых лет.

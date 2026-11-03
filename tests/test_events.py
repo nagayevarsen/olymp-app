@@ -2,11 +2,12 @@
 
 import json
 from datetime import date
+from pathlib import Path
 
 import pytest
 
 import app as app_module
-from catalog.events import check_event, get_catalog, read_catalog
+from catalog.events import SUBJECTS, check_event, get_catalog, read_catalog
 
 TODAY = date(2026, 11, 10)
 
@@ -48,6 +49,22 @@ def test_correct_event_has_no_problems():
     assert check_event(make_event()) == ([], [])
 
 
+def test_twelfth_grade_is_allowed():
+    assert check_event(make_event(grade_to=12)) == ([], [])
+
+
+def test_every_subject_has_russian_name():
+    """Иначе в форме вместо названия предмета появится его код."""
+    path = Path(__file__).parent.parent / "static" / "i18n" / "ru.json"
+    texts = json.loads(path.read_text(encoding="utf-8"))
+    assert [subject for subject in SUBJECTS if f"subject_{subject}" not in texts] == []
+
+
+def test_api_sends_full_subject_list():
+    response = app_module.app.test_client().get("/api/events")
+    assert response.json["subjects"] == list(SUBJECTS)
+
+
 @pytest.mark.parametrize(
     "changes",
     [
@@ -57,7 +74,7 @@ def test_correct_event_has_no_problems():
         pytest.param({"subjects": [["math"]]}, id="предмет записан списком"),
         pytest.param({"subjects": []}, id="нет предметов"),
         pytest.param({"subjects": ["Математика"]}, id="неизвестный предмет"),
-        pytest.param({"grade_from": 12}, id="класс вне диапазона"),
+        pytest.param({"grade_from": 13, "grade_to": 13}, id="класс вне диапазона"),
         pytest.param({"grade_from": True}, id="класс не число"),
         pytest.param({"grade_from": 9, "grade_to": 7}, id="классы перепутаны"),
         pytest.param({"source_url": ""}, id="нет ссылки"),

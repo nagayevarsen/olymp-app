@@ -11,7 +11,7 @@ from flask import Flask, jsonify, render_template, send_from_directory
 
 from catalog.archives import ARCHIVES_FILE, get_archives
 from catalog.dates import today_kz
-from catalog.events import EVENTS_FILE, get_catalog
+from catalog.events import EVENTS_FILE, SUBJECTS, get_catalog
 
 # Сообщаем серверу тип файла установки, иначе на Windows он может быть неизвестен.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -53,6 +53,8 @@ def api_events():
         generated_at=datetime.now(timezone.utc).isoformat(),
         events=events,
         archives=archives,
+        # Полный список предметов для формы поиска: он один на сервер и страницу.
+        subjects=SUBJECTS,
     )
 
 

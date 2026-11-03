@@ -202,6 +202,23 @@ body {
   font: inherit;
 }
 
+/* На iPhone поле даты не сжимается по ширине колонки и наезжает на соседнее.
+   Поэтому снимаем системный вид и отдаём этому полю всю строку. */
+input[type="date"].field {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  max-width: 100%;
+}
+
+input[type="date"].field::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+#date-field {
+  grid-column: 1 / -1;
+}
+
 .segments {
   display: grid;
   grid-template-columns: 1fr 1fr 1.4fr;

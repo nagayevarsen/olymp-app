@@ -86,13 +86,13 @@ function eventsForTab(events, tab, filters, today, savedIds) {
   }
 
   const usedFilters = { ...filters, date };
-  const found = active.filter((event) => matchesFilters(event, usedFilters));
+  // Учебные материалы живут только во вкладке «Подготовка».
+  const found = active.filter((event) => event.type !== "material" && matchesFilters(event, usedFilters));
   if (tab === "closing") {
     // Если дата выбрана, 14 дней считаются от неё, иначе от сегодняшнего дня.
     const startingFrom = date || today;
     return found.filter((event) => (
-      event.type !== "material"
-      && isClosingSoon(event.registration_start, event.registration_deadline, startingFrom)
+      isClosingSoon(event.registration_start, event.registration_deadline, startingFrom)
     ));
   }
   return found;

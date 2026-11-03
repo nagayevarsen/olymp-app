@@ -20,9 +20,19 @@ EVENTS_FILE = Path(__file__).parent.parent / "data" / "events.json"
 EVENT_TYPES = ("olympiad", "contest", "material")
 EVENT_FORMATS = ("offline", "online")
 SUBJECTS = (
-    "math", "informatics", "ai", "robotics", "physics", "chemistry", "biology",
-    "geography", "history", "economics", "kazakh_language", "russian_language",
-    "english_language", "literature", "other",
+    # Языки и литература
+    "literacy", "kazakh_language", "kazakh_literature", "russian_language",
+    "russian_literature", "english_language",
+    # Математика и информатика
+    "math", "algebra", "geometry", "informatics", "digital_literacy",
+    # Естественные науки
+    "world_studies", "natural_science", "physics", "chemistry", "biology", "geography",
+    # Общество
+    "kazakhstan_history", "world_history", "law", "business_basics", "economics", "self_knowledge",
+    # Творчество, технологии и спорт
+    "music", "art_and_craft", "graphics_and_design", "military_training", "physical_education",
+    # Направления олимпиад, которых нет в школьном расписании
+    "ai", "robotics", "other",
 )
 
 # События из этой страны попадают в раздел «Казахстан», остальные — в «Международные».
@@ -47,9 +57,9 @@ def is_filled_text(value):
 
 
 def is_valid_grade(value):
-    """Проверяет, что значение — номер класса от 1 до 11."""
+    """Проверяет, что значение — номер класса от 1 до 12."""
     # True и False в Python тоже считаются числами, поэтому исключаем их явно.
-    return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 11
+    return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 12
 
 
 def is_whole_number(value):
@@ -112,7 +122,7 @@ def check_event(event):
 
     grades_are_valid = is_valid_grade(event["grade_from"]) and is_valid_grade(event["grade_to"])
     if not grades_are_valid:
-        errors.append("классы должны быть числами от 1 до 11")
+        errors.append("классы должны быть числами от 1 до 12")
     elif event["grade_from"] > event["grade_to"]:
         errors.append("класс «от» больше класса «до»")
 

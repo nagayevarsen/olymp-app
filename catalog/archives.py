@@ -39,7 +39,7 @@ def check_archive(item):
         errors.append("subjects должен быть непустым списком известных предметов")
 
     if not (is_valid_grade(item["grade_from"]) and is_valid_grade(item["grade_to"])):
-        errors.append("классы должны быть числами от 1 до 11")
+        errors.append("классы должны быть числами от 1 до 12")
     elif item["grade_from"] > item["grade_to"]:
         errors.append("класс «от» больше класса «до»")
 

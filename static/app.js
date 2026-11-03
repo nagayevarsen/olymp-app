@@ -11,6 +11,7 @@ const state = {
   texts: {},
   events: [],
   archives: [],
+  subjects: [],
   dataToday: null, // день, когда сервер подготовил данные
   dataLoadedAt: null, // точное время этого ответа сервера
   tab: "closing",
@@ -54,6 +55,8 @@ function loadFilters() {
   const stored = readStored(FILTERS_KEY, {});
   const filters = { ...emptyFilters(), ...stored, search: "", date: "" };
   if (!Array.isArray(filters.subjects)) filters.subjects = [];
+  // Раньше в типах был «учебный материал»: такой сохранённый выбор больше не действует.
+  if (filters.type === "material") filters.type = "";
   return filters;
 }
 
@@ -388,18 +391,18 @@ function updateSeasonOptions() {
 
 // Заполняет списки. Предметы берём из самого каталога.
 function buildForm() {
-  const grades = Array.from({ length: 11 }, (_, index) => String(index + 1));
+  const grades = Array.from({ length: 12 }, (_, index) => String(index + 1));
   fillSelect("grade", [["", t("any")], ...grades.map((grade) => [grade, grade])]);
 
   updateSeasonOptions();
 
-  const allRecords = [...state.events, ...state.archives];
-  fillSelect("type", [["", t("any")], ...["olympiad", "contest", "material"].map((type) => [type, t(`type_${type}`)])]);
+  fillSelect("type", [["", t("any")], ...["olympiad", "contest"].map((type) => [type, t(`type_${type}`)])]);
   fillSelect("format", [["", t("any")], ...["offline", "online"].map((format) => [format, t(`format_${format}`)])]);
   fillSelect("cost", [["", t("any_cost")], ["free", t("cost_free")], ["paid", t("cost_paid")]]);
   fillSelect("price-tier", [["", t("any_cost")], ...PRICE_TIERS.map((tier) => [tier, t(`price_${tier}`)])]);
 
-  const subjects = [...new Set(allRecords.flatMap((record) => record.subjects))]
+  // Показываем все предметы сразу, даже если событий по ним пока нет.
+  const subjects = [...state.subjects]
     .sort((a, b) => t(`subject_${a}`).localeCompare(t(`subject_${b}`), t("locale")));
   byId("subjects").replaceChildren(...subjects.map((subject) => {
     const chip = makeElement("button", "chip", t(`subject_${subject}`));
@@ -597,6 +600,7 @@ async function start() {
     const data = await loadJson("/api/events");
     state.events = data.events;
     state.archives = data.archives;
+    state.subjects = data.subjects;
     state.dataToday = data.today;
     state.dataLoadedAt = data.generated_at;
     state.filters = loadFilters();
