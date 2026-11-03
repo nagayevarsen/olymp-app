@@ -8,12 +8,78 @@
 </head>
 <body>
   <main class="page">
-    <h1 id="app-title">Поиск олимпиад</h1>
-    <!-- Сюда app.js пишет сообщения: загрузка, ошибка, пустой список. -->
-    <p id="message" role="status">Загрузка…</p>
-    <!-- Сюда app.js добавляет карточки событий. -->
+    <header class="page-header">
+      <h1 data-i18n="app_title">Поиск олимпиад</h1>
+      <!-- Текущие дата и время в Казахстане. -->
+      <p id="clock" class="clock"></p>
+    </header>
+
+    <nav class="tabs">
+      <button type="button" class="tab" data-tab="closing" data-i18n="tab_closing"></button>
+      <button type="button" class="tab" data-tab="all" data-i18n="tab_all"></button>
+      <button type="button" class="tab" data-tab="prepare" data-i18n="tab_prepare"></button>
+      <button type="button" class="tab" data-tab="saved" data-i18n="tab_saved"></button>
+    </nav>
+
+    <!-- Форма поиска. Она ничего не отправляет на сервер: отбор идёт в браузере. -->
+    <form id="search-form" class="search-form">
+      <input id="search" class="field" type="search" autocomplete="off" data-i18n-placeholder="search_placeholder">
+
+      <div class="segments">
+        <button type="button" class="segment" data-region="" data-i18n="region_any"></button>
+        <button type="button" class="segment" data-region="kazakhstan" data-i18n="region_kazakhstan"></button>
+        <button type="button" class="segment" data-region="international" data-i18n="region_international"></button>
+      </div>
+
+      <details class="filters">
+        <summary><span data-i18n="filters"></span> <span id="filter-count" class="filter-count" hidden></span></summary>
+        <div class="filter-grid">
+          <label><span data-i18n="filter_grade"></span>
+            <select id="grade" class="field"></select>
+          </label>
+          <label><span data-i18n="filter_age"></span>
+            <input id="age" class="field" type="number" min="3" max="30" inputmode="numeric">
+          </label>
+          <label id="date-field"><span data-i18n="filter_date"></span>
+            <input id="date" class="field" type="date">
+          </label>
+          <label><span data-i18n="filter_season"></span>
+            <select id="season" class="field"></select>
+          </label>
+          <label><span data-i18n="filter_type"></span>
+            <select id="type" class="field"></select>
+          </label>
+          <label><span data-i18n="filter_format"></span>
+            <select id="format" class="field"></select>
+          </label>
+          <label><span data-i18n="filter_cost"></span>
+            <select id="cost" class="field"></select>
+          </label>
+          <label id="price-field" hidden><span data-i18n="filter_price"></span>
+            <select id="price-tier" class="field"></select>
+          </label>
+        </div>
+        <p class="filter-label" data-i18n="filter_subjects"></p>
+        <div id="subjects" class="chips"></div>
+        <button id="reset" type="button" class="button button-secondary" data-i18n="reset_filters"></button>
+      </details>
+    </form>
+
+    <!-- Перенос сохранённого на другое устройство. Виден только во вкладке «Мои». -->
+    <section id="transfer" class="transfer" hidden>
+      <button id="make-link" type="button" class="button button-secondary" data-i18n="make_link"></button>
+      <input id="transfer-link" class="field" type="text" readonly hidden>
+      <p id="transfer-note" class="note" role="status"></p>
+    </section>
+
+    <p id="message" class="message" role="status">Загрузка…</p>
+    <button id="empty-reset" type="button" class="button button-secondary" data-i18n="reset_filters" hidden></button>
     <section id="event-list" class="event-list"></section>
   </main>
+
+  <!-- Порядок важен: filters.js и app.js используют функции из dates.js. -->
+  <script src="{{ url_for('static', filename='dates.js') }}"></script>
+  <script src="{{ url_for('static', filename='filters.js') }}"></script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

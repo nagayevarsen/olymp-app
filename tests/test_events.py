@@ -20,7 +20,11 @@ def make_event(**changes):
         "subjects": ["math"],
         "grade_from": 7,
         "grade_to": 11,
+        "age_from": None,
+        "age_to": None,
         "country": "Казахстан",
+        "season": "2026-2027",
+        "fee_kzt": None,
         "registration_start": "2026-10-01",
         "registration_deadline": "2026-11-20",
         "event_date": "2026-12-01",
@@ -61,6 +65,12 @@ def test_correct_event_has_no_problems():
         pytest.param({"source_url": "javascript:alert(1)"}, id="опасная ссылка"),
         pytest.param({"last_checked": "03-15"}, id="дата проверки без года"),
         pytest.param({"title": " "}, id="пустое название"),
+        pytest.param({"season": "2026"}, id="сезон из одного года"),
+        pytest.param({"season": "2026-2028"}, id="сезон через год"),
+        pytest.param({"age_from": 2}, id="возраст вне диапазона"),
+        pytest.param({"age_from": 16, "age_to": 14}, id="возраст перепутан"),
+        pytest.param({"fee_kzt": -1}, id="отрицательная цена"),
+        pytest.param({"fee_kzt": "5000"}, id="цена текстом"),
     ],
 )
 def test_bad_event_is_an_error(changes):
@@ -128,6 +138,18 @@ def test_material_has_no_status(tmp_path):
     event = get_catalog(TODAY, write_catalog(tmp_path, [material]))[0]
     assert event["status"] is None
     assert event["closing_soon"] is False
+
+
+def test_region_is_set_from_country(tmp_path):
+    path = write_catalog(
+        tmp_path,
+        [
+            make_event(id="kz", country="Казахстан"),
+            make_event(id="world", country="Международная"),
+        ],
+    )
+    regions = {event["id"]: event["region"] for event in get_catalog(TODAY, path)}
+    assert regions == {"kz": "kazakhstan", "world": "international"}
 
 
 def test_broken_file_is_reported(tmp_path):
