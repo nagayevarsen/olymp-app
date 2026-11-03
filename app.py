@@ -5,6 +5,7 @@
 """
 
 import mimetypes
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, send_from_directory
 
@@ -46,7 +47,13 @@ def api_events():
         # а странице сообщаем, что каталог сейчас недоступен.
         app.logger.exception("Не удалось прочитать каталог")
         return jsonify(error="catalog_unavailable"), 503
-    return jsonify(today=today.isoformat(), events=events, archives=archives)
+    return jsonify(
+        today=today.isoformat(),
+        # Точное время ответа: офлайн приложение покажет, насколько свежи данные.
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        events=events,
+        archives=archives,
+    )
 
 
 if __name__ == "__main__":

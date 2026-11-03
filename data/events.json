@@ -48,7 +48,7 @@
   {
     "id": "example-physics-olympiad",
     "is_example": true,
-    "series_id": null,
+    "series_id": "example-physics-olympiad",
     "stage": null,
     "title": "ПРИМЕР: Выдуманная международная олимпиада по физике",
     "type": "olympiad",

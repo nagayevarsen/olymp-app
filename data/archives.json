@@ -15,9 +15,24 @@
     "last_checked": "2026-11-04"
   },
   {
+    "id": "example-math-archive-2024",
+    "is_example": true,
+    "series_id": "example-math-olympiad",
+    "title": "ПРИМЕР: Выдуманная олимпиада по математике",
+    "stage": "Региональный этап",
+    "subjects": ["math"],
+    "grade_from": 7,
+    "grade_to": 11,
+    "country": "Казахстан",
+    "season": "2024-2025",
+    "tasks_url": "https://example.org/math-olympiad/tasks-2024",
+    "solutions_url": null,
+    "last_checked": "2026-11-04"
+  },
+  {
     "id": "example-physics-archive-2024",
     "is_example": true,
-    "series_id": null,
+    "series_id": "example-physics-olympiad",
     "title": "ПРИМЕР: Выдуманная международная олимпиада по физике",
     "stage": null,
     "subjects": ["physics"],

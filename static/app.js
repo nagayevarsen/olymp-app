@@ -12,6 +12,7 @@ const state = {
   events: [],
   archives: [],
   dataToday: null, // день, когда сервер подготовил данные
+  dataLoadedAt: null, // точное время этого ответа сервера
   tab: "closing",
   filters: emptyFilters(),
   savedIds: [],
@@ -98,14 +99,18 @@ function formatAge(event) {
   return parts.join(" ");
 }
 
+// Показывает момент времени с датой и часами по времени Казахстана.
+function formatMoment(moment) {
+  const shifted = new Date(moment.getTime() + KZ_OFFSET_MS);
+  return new Intl.DateTimeFormat(t("locale"), {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC",
+  }).format(shifted);
+}
+
 // Показывает текущие дату и время в Казахстане.
 function updateClock() {
   const now = new Date();
-  const shifted = new Date(now.getTime() + KZ_OFFSET_MS);
-  const formatted = new Intl.DateTimeFormat(t("locale"), {
-    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC",
-  }).format(shifted);
-  byId("clock").textContent = `${t("clock_prefix")}: ${formatted}`;
+  byId("clock").textContent = `${t("clock_prefix")}: ${formatMoment(now)}`;
 
   // Наступил новый день: статусы и метки нужно пересчитать.
   const newToday = todayKz(now);
@@ -122,7 +127,12 @@ function updateOfflineNote() {
   const note = byId("offline-note");
   const isOld = state.dataToday !== null && state.dataToday !== state.today;
   note.hidden = state.dataToday === null || (navigator.onLine && !isOld);
-  if (!note.hidden) note.textContent = `${t("offline_note")}: ${formatDate(state.dataToday)}`;
+  if (!note.hidden) {
+    // В старой сохранённой копии точного времени может не быть, тогда покажем только дату.
+    const loadedAt = new Date(state.dataLoadedAt);
+    const when = Number.isNaN(loadedAt.getTime()) ? formatDate(state.dataToday) : formatMoment(loadedAt);
+    note.textContent = `${t("offline_note")}: ${when}`;
+  }
 }
 
 // Подпись на кнопке называет тему, на которую можно переключиться.
@@ -225,6 +235,47 @@ function makeLink(text, href) {
   return link;
 }
 
+// Ссылки на задания и решения одной записи архива.
+function makeArchiveLinks(item) {
+  const links = makeElement("div", "card-links");
+  links.append(makeLink(t("archive_tasks"), item.tasks_url));
+  if (item.solutions_url) links.append(makeLink(t("archive_solutions"), item.solutions_url));
+  return links;
+}
+
+// Список «Прошлые олимпиады» в карточке: можно выбрать любой год и этап.
+// Возвращает null, если прошлых заданий этой олимпиады в архиве нет.
+function makePastEditions(event) {
+  if (!event.series_id) return null;
+  const editions = state.archives.filter((item) => item.series_id === event.series_id);
+  if (editions.length === 0) return null;
+
+  const box = makeElement("div", "past-editions");
+  const label = makeElement("label", "past-editions-label");
+  label.append(makeElement("span", "", t("past_editions")));
+
+  const select = makeElement("select", "field");
+  editions.forEach((item) => {
+    const text = item.stage ? `${item.season} · ${item.stage}` : item.season;
+    const option = makeElement("option", "", text);
+    option.value = item.id;
+    select.append(option);
+  });
+  label.append(select);
+  box.append(label);
+
+  // Сразу показываем самый новый выпуск, а при выборе меняем ссылки.
+  let links = makeArchiveLinks(editions[0]);
+  box.append(links);
+  select.addEventListener("change", () => {
+    const chosen = editions.find((item) => item.id === select.value);
+    const newLinks = makeArchiveLinks(chosen);
+    links.replaceWith(newLinks);
+    links = newLinks;
+  });
+  return box;
+}
+
 // Карточка заданий прошлых лет. Ссылки ведут на сайт организатора.
 function makeArchiveCard(item) {
   const card = makeElement("article", "event-card");
@@ -239,10 +290,7 @@ function makeArchiveCard(item) {
   card.append(makeElement("p", "event-row", item.subjects.map((subject) => t(`subject_${subject}`)).join(", ")));
   card.append(makeElement("p", "event-row", `${t("grades")}: ${item.grade_from}–${item.grade_to} · ${item.country}`));
 
-  const links = makeElement("div", "card-links");
-  links.append(makeLink(t("archive_tasks"), item.tasks_url));
-  if (item.solutions_url) links.append(makeLink(t("archive_solutions"), item.solutions_url));
-  card.append(links);
+  card.append(makeArchiveLinks(item));
 
   card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(item.last_checked)}`));
   return card;
@@ -297,15 +345,12 @@ function makeCard(event) {
 
   const links = makeElement("div", "card-links");
   links.append(makeLink(t("official_source"), event.source_url));
-  // Задания этой же олимпиады за прошлые годы.
-  if (event.series_id) {
-    state.archives
-      .filter((item) => item.series_id === event.series_id)
-      .forEach((item) => links.append(makeLink(`${t("past_tasks")} ${item.season}`, item.tasks_url)));
-  }
   card.append(links);
 
   card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(event.last_checked)}`));
+
+  const pastEditions = makePastEditions(event);
+  if (pastEditions) card.append(pastEditions);
   card.append(makeSaveButtons(event));
   return card;
 }
@@ -321,15 +366,34 @@ function fillSelect(id, options) {
   }));
 }
 
-// Заполняет списки. Предметы и учебные годы берём из самого каталога.
+// Заполняет список учебных годов для текущей вкладки. В «Подготовке» это годы
+// прошлых олимпиад, а на остальных вкладках только годы действующих событий.
+function updateSeasonOptions() {
+  const isPrepareTab = state.tab === "prepare";
+  const records = isPrepareTab
+    ? state.archives
+    : state.events.filter((event) => event.type !== "material");
+  const seasons = [...new Set(records.map((record) => record.season).filter(Boolean))].sort().reverse();
+
+  fillSelect("season", [["", t("any")], ...seasons.map((season) => [season, season])]);
+  byId("season-label").textContent = t(isPrepareTab ? "filter_season_past" : "filter_season");
+
+  // Год с другой вкладки здесь недоступен: сбрасываем его, иначе список будет пустым.
+  if (!seasons.includes(state.filters.season)) {
+    state.filters.season = "";
+    saveFilters();
+  }
+  byId("season").value = state.filters.season;
+}
+
+// Заполняет списки. Предметы берём из самого каталога.
 function buildForm() {
   const grades = Array.from({ length: 11 }, (_, index) => String(index + 1));
   fillSelect("grade", [["", t("any")], ...grades.map((grade) => [grade, grade])]);
 
-  const allRecords = [...state.events, ...state.archives];
-  const seasons = [...new Set(allRecords.map((record) => record.season).filter(Boolean))].sort().reverse();
-  fillSelect("season", [["", t("any")], ...seasons.map((season) => [season, season])]);
+  updateSeasonOptions();
 
+  const allRecords = [...state.events, ...state.archives];
   fillSelect("type", [["", t("any")], ...["olympiad", "contest", "material"].map((type) => [type, t(`type_${type}`)])]);
   fillSelect("format", [["", t("any")], ...["offline", "online"].map((format) => [format, t(`format_${format}`)])]);
   fillSelect("cost", [["", t("any_cost")], ["free", t("cost_free")], ["paid", t("cost_paid")]]);
@@ -487,6 +551,7 @@ function connectEvents() {
       state.tab = button.dataset.tab;
       byId("transfer-note").textContent = "";
       byId("transfer-link").hidden = true;
+      updateSeasonOptions();
       render();
     });
   });
@@ -533,6 +598,7 @@ async function start() {
     state.events = data.events;
     state.archives = data.archives;
     state.dataToday = data.today;
+    state.dataLoadedAt = data.generated_at;
     state.filters = loadFilters();
     state.savedIds = loadSavedIds();
 

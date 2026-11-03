@@ -2,6 +2,7 @@
 
 import json
 import re
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,12 @@ def test_api_includes_archives():
     response = app_module.app.test_client().get("/api/events")
     assert response.status_code == 200
     assert "archives" in response.json
+
+
+def test_api_tells_exact_time_of_data():
+    response = app_module.app.test_client().get("/api/events")
+    moment = datetime.fromisoformat(response.json["generated_at"])
+    assert moment.utcoffset() == timedelta(0)
 
 
 def test_service_worker_opens_from_site_root():
