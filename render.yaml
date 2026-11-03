@@ -5,6 +5,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # gunicorn — сервер для работы в интернете. Встроенный сервер Flask подходит только для разработки.
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    # gunicorn — сервер для работы в интернете. Один процесс нужен, чтобы кэш и лимиты
+    # были общими. Потоки позволяют обслуживать людей во время долгого поиска, а
+    # timeout не даёт серверу оборвать умный поиск раньше его собственного лимита времени.
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120
     healthCheckPath: /

@@ -33,8 +33,35 @@
       <button type="button" class="tab" data-tab="closing" data-i18n="tab_closing"></button>
       <button type="button" class="tab" data-tab="all" data-i18n="tab_all"></button>
       <button type="button" class="tab" data-tab="saved" data-i18n="tab_saved"></button>
+      <button type="button" class="tab" data-tab="smart" data-i18n="tab_smart"></button>
     </nav>
 
+    <!-- Умный поиск. Условия отправляются только на время поиска и не сохраняются. -->
+    <section id="smart-panel" hidden>
+      <form id="smart-form" class="search-form" novalidate>
+        <p class="note" data-i18n="smart_intro"></p>
+        <div class="filter-grid">
+          <label><span data-i18n="filter_grade"></span>
+            <select id="smart-grade" class="field"></select>
+          </label>
+          <label><span data-i18n="smart_age"></span>
+            <input id="smart-age" class="field" type="number" min="3" max="30" inputmode="numeric">
+          </label>
+          <label><span data-i18n="smart_country"></span>
+            <select id="smart-country" class="field"></select>
+          </label>
+        </div>
+        <p class="filter-label" data-i18n="smart_subjects"></p>
+        <div id="smart-subjects" class="chips"></div>
+        <p id="smart-error" class="smart-error" role="alert"></p>
+        <button id="smart-submit" type="submit" class="button button-primary" data-i18n="smart_submit"></button>
+      </form>
+      <ul id="smart-progress" class="smart-progress" role="status" hidden></ul>
+      <p id="smart-notice" class="banner" role="status" hidden></p>
+      <section id="smart-results" class="event-list"></section>
+    </section>
+
+    <div id="catalog-panel">
     <!-- Форма поиска. Она ничего не отправляет на сервер: отбор идёт в браузере. -->
     <form id="search-form" class="search-form">
       <input id="search" class="field" type="search" autocomplete="off" data-i18n-placeholder="search_placeholder" data-i18n-label="search_placeholder">
@@ -86,6 +113,7 @@
     <p id="message" class="message" role="status">Загрузка…</p>
     <button id="empty-reset" type="button" class="button button-secondary" data-i18n="reset_filters" hidden></button>
     <section id="event-list" class="event-list"></section>
+    </div>
 
     <footer class="page-footer">
       <p data-i18n="privacy_note"></p>
@@ -96,6 +124,7 @@
   <!-- Порядок важен: filters.js и app.js используют функции из dates.js. -->
   <script src="{{ url_for('static', filename='dates.js') }}"></script>
   <script src="{{ url_for('static', filename='filters.js') }}"></script>
+  <script src="{{ url_for('static', filename='smart.js') }}"></script>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

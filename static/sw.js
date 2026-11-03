@@ -2,7 +2,7 @@
 // страницы, хранит копии файлов и отдаёт их, когда интернета нет.
 
 // После серьёзных изменений в приложении увеличьте номер версии.
-const CACHE_NAME = "olymp-v4";
+const CACHE_NAME = "olymp-v5";
 const API_URL = "/api/events";
 
 // Через столько миллисекунд перестаём ждать сервер и показываем сохранённые данные.
@@ -14,6 +14,7 @@ const APP_FILES = [
   "/static/theme.js",
   "/static/dates.js",
   "/static/filters.js",
+  "/static/smart.js",
   "/static/app.js",
   "/static/i18n/ru.json",
   "/static/manifest.webmanifest",
@@ -29,6 +30,8 @@ self.addEventListener("install", (event) => {
     const cache = await caches.open(CACHE_NAME);
     await cache.addAll(APP_FILES);
     await cache.add(API_URL).catch(() => {});
+    // Сохранённые результаты умного поиска: они нужны и без интернета.
+    await cache.add("/api/smart-search/demo").catch(() => {});
     await self.skipWaiting();
   })());
 });

@@ -7,16 +7,25 @@
 import mimetypes
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, render_template, send_from_directory
+import json
+
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory, stream_with_context
 
 from catalog.archives import ARCHIVES_FILE, get_archives
 from catalog.dates import today_kz
 from catalog.events import EVENTS_FILE, SUBJECTS, get_catalog
+from smart_search.models import COUNTRIES, parse_search_request
+from smart_search.pipeline import load_demo_results
+from smart_search.setup import build_service
 
 # Сообщаем серверу тип файла установки, иначе на Windows он может быть неизвестен.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 app = Flask(__name__)
+# Форма поиска очень маленькая, поэтому большие запросы сервер сразу отклоняет.
+app.config["MAX_CONTENT_LENGTH"] = 4096
+
+search_service = build_service()
 
 
 @app.get("/")
@@ -55,7 +64,37 @@ def api_events():
         archives=archives,
         # Полный список предметов для формы поиска: он один на сервер и страницу.
         subjects=SUBJECTS,
+        countries=COUNTRIES,
     )
+
+
+@app.post("/api/smart-search")
+def api_smart_search():
+    """Запускает умный поиск и по строкам отдаёт прогресс, а затем результат.
+
+    Условия поиска приходят в теле запроса, а не в адресе, поэтому не попадают
+    в журналы сервера. Мы их не сохраняем.
+    """
+    try:
+        search_request = parse_search_request(request.get_json(silent=True))
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+
+    def lines():
+        for event in search_service.run(search_request):
+            yield json.dumps(event, ensure_ascii=False) + "\n"
+
+    return Response(
+        stream_with_context(lines()),
+        mimetype="application/x-ndjson",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/smart-search/demo")
+def api_smart_search_demo():
+    """Сохранённые результаты на случай, если до живого поиска не достучаться."""
+    return jsonify(type="result", source="demo", notice="unavailable", results=load_demo_results(today_kz()))
 
 
 if __name__ == "__main__":

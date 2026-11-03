@@ -148,7 +148,7 @@ body {
 .tabs {
   display: grid;
   /* Вкладке «Скоро закроется» нужно больше места, чем остальным. */
-  grid-template-columns: 1.6fr 1fr 1fr;
+  grid-template-columns: 1.5fr 0.7fr 0.7fr 1fr;
   gap: 6px;
   margin-bottom: 16px;
 }
@@ -156,8 +156,84 @@ body {
 .tab {
   min-width: 0;
   padding: 8px 2px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* Умный поиск */
+.smart-error {
+  margin: 0;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.smart-error:empty {
+  display: none;
+}
+
+.smart-progress {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  list-style: none;
+}
+
+.smart-step {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.smart-step-running {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.smart-step-done {
+  color: var(--text);
+}
+
+.smart-step-mark {
+  flex: none;
+  width: 1.2em;
+  text-align: center;
+}
+
+.smart-card {
+  padding: 16px;
+}
+
+.smart-quote {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.trust-verified {
+  background: var(--green);
+  color: var(--on-green);
+}
+
+.trust-models_agree {
+  background: var(--yellow);
+  color: var(--on-yellow);
+}
+
+.trust-unconfirmed {
+  background: var(--soft);
+  color: var(--text);
+  border: 1px solid var(--muted);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .tab.is-on,

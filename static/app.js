@@ -12,6 +12,7 @@ const state = {
   events: [],
   archives: [],
   subjects: [],
+  countries: [],
   dataToday: null, // день, когда сервер подготовил данные
   dataLoadedAt: null, // точное время этого ответа сервера
   tab: "closing",
@@ -485,6 +486,12 @@ function render() {
     chip.setAttribute("aria-pressed", String(isOn));
   });
 
+  // Умный поиск работает отдельно: у него своя форма и свои результаты.
+  const isSmartTab = tab === "smart";
+  byId("smart-panel").hidden = !isSmartTab;
+  byId("catalog-panel").hidden = isSmartTab;
+  if (isSmartTab) return;
+
   byId("search-form").hidden = isSavedTab;
   byId("price-field").hidden = filters.cost !== "paid";
   // Подпись периода зависит от выбранного типа: олимпиада или конкурс.
@@ -587,12 +594,14 @@ async function start() {
     state.events = data.events;
     state.archives = data.archives;
     state.subjects = data.subjects;
+    state.countries = data.countries;
     state.dataToday = data.today;
     state.dataLoadedAt = data.generated_at;
     state.filters = loadFilters();
     state.savedIds = loadSavedIds();
 
     buildForm();
+    buildSmartForm();
     showFiltersInForm();
     connectEvents();
     importSavedFromLink();

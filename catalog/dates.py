@@ -41,6 +41,12 @@ def today_kz(now=None):
     return now.astimezone(KZ_TIMEZONE).date()
 
 
+def current_season(today):
+    """Возвращает учебный сезон: с августа начинается новый, например 2026-2027."""
+    first_year = today.year if today.month >= 8 else today.year - 1
+    return f"{first_year}-{first_year + 1}"
+
+
 def parse_date(text):
     """Превращает строку ГГГГ-ММ-ДД в дату.
 
