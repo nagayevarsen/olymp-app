@@ -32,6 +32,7 @@ def make_event(**changes):
         "format": "online",
         "summary": "Краткое условие.",
         "source_url": "https://example.org/event",
+        "registration_url": None,
         "last_checked": "2026-11-04",
     }
     event.update(changes)
@@ -80,6 +81,7 @@ def test_api_sends_full_subject_list():
         pytest.param({"source_url": ""}, id="нет ссылки"),
         pytest.param({"source_url": "example.org"}, id="ссылка без https"),
         pytest.param({"source_url": "javascript:alert(1)"}, id="опасная ссылка"),
+        pytest.param({"registration_url": "javascript:alert(1)"}, id="опасная ссылка регистрации"),
         pytest.param({"last_checked": "03-15"}, id="дата проверки без года"),
         pytest.param({"title": " "}, id="пустое название"),
         pytest.param({"season": "2026"}, id="сезон из одного года"),

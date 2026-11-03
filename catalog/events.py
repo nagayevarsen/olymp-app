@@ -21,18 +21,16 @@ EVENT_TYPES = ("olympiad", "contest", "material")
 EVENT_FORMATS = ("offline", "online")
 SUBJECTS = (
     # Языки и литература
-    "literacy", "kazakh_language", "kazakh_literature", "russian_language",
+    "kazakh_language", "kazakh_literature", "russian_language",
     "russian_literature", "english_language",
     # Математика и информатика
     "math", "algebra", "geometry", "informatics", "digital_literacy",
     # Естественные науки
-    "world_studies", "natural_science", "physics", "chemistry", "biology", "geography",
+    "natural_science", "physics", "chemistry", "biology", "geography",
     # Общество
-    "kazakhstan_history", "world_history", "law", "business_basics", "economics", "self_knowledge",
-    # Творчество, технологии и спорт
-    "music", "art_and_craft", "graphics_and_design", "military_training", "physical_education",
+    "kazakhstan_history", "world_history", "economics",
     # Направления олимпиад, которых нет в школьном расписании
-    "ai", "robotics", "other",
+    "ai", "robotics",
 )
 
 # События из этой страны попадают в раздел «Казахстан», остальные — в «Международные».
@@ -43,7 +41,8 @@ HOME_COUNTRY = "Казахстан"
 REQUIRED_FIELDS = (
     "id", "title", "type", "subjects", "grade_from", "grade_to", "age_from",
     "age_to", "country", "season", "registration_start", "registration_deadline",
-    "event_date", "format", "fee_kzt", "summary", "source_url", "last_checked",
+    "event_date", "format", "fee_kzt", "summary", "source_url", "registration_url",
+    "last_checked",
 )
 DATE_FIELDS = ("registration_start", "registration_deadline", "event_date")
 
@@ -144,6 +143,10 @@ def check_event(event):
     if not is_valid_url(event["source_url"]):
         errors.append("нужна ссылка на официальный источник (http или https)")
 
+    # Если отдельной страницы регистрации нет, кнопка ведёт на source_url.
+    if event["registration_url"] is not None and not is_valid_url(event["registration_url"]):
+        errors.append("registration_url должна быть ссылкой или null")
+
     # Дата проверки обещана в каждой карточке, поэтому без неё запись не показываем.
     if parse_date(event["last_checked"]) is None:
         errors.append("last_checked должна быть датой ГГГГ-ММ-ДД")
@@ -229,11 +232,12 @@ def main():
     # Без этой строки русский текст может отображаться неправильно на Windows.
     sys.stdout.reconfigure(encoding="utf-8")
     # Импорт здесь, потому что archives.py сам использует функции из этого файла.
-    from catalog.archives import read_archives
+    from catalog.archives import find_unlinked, read_archives
 
     events, errors, warnings = read_catalog()
     archives, archive_errors = read_archives()
     errors = errors + archive_errors
+    warnings = warnings + find_unlinked(events, archives)
     print(f"Годных записей: {len(events)}. Заданий прошлых лет: {len(archives)}.")
     print(f"Сегодня в Казахстане: {today_kz()}")
     for problem in errors:

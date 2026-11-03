@@ -20,12 +20,13 @@
     "fee_kzt": 0,
     "summary": "Тестовая запись для проверки приложения. Такой олимпиады не существует.",
     "source_url": "https://example.org/math-olympiad",
+    "registration_url": "https://example.org/math-olympiad/register",
     "last_checked": "2026-11-04"
   },
   {
     "id": "example-project-contest",
     "is_example": true,
-    "series_id": null,
+    "series_id": "example-project-contest",
     "stage": null,
     "title": "ПРИМЕР: Выдуманный конкурс школьных проектов",
     "type": "contest",
@@ -43,6 +44,7 @@
     "fee_kzt": 5000,
     "summary": "Тестовая запись для проверки приложения. Такого конкурса не существует.",
     "source_url": "https://example.org/project-contest",
+    "registration_url": null,
     "last_checked": "2026-11-04"
   },
   {
@@ -66,6 +68,7 @@
     "fee_kzt": 30000,
     "summary": "Тестовая запись для проверки приложения. Такой олимпиады не существует.",
     "source_url": "https://example.org/physics-olympiad",
+    "registration_url": "https://example.org/physics-olympiad/register",
     "last_checked": "2026-11-04"
   },
   {
@@ -89,12 +92,13 @@
     "fee_kzt": null,
     "summary": "Тестовая запись для проверки приложения. Такой олимпиады не существует.",
     "source_url": "https://example.org/biology-olympiad",
+    "registration_url": "https://example.org/biology-olympiad/register",
     "last_checked": "2026-11-04"
   },
   {
     "id": "example-informatics-material",
     "is_example": true,
-    "series_id": null,
+    "series_id": "example-project-contest",
     "stage": null,
     "title": "ПРИМЕР: Выдуманный учебный курс по информатике",
     "type": "material",
@@ -112,6 +116,7 @@
     "fee_kzt": 0,
     "summary": "Тестовая запись для проверки приложения. Такого курса не существует.",
     "source_url": "https://example.org/informatics-course",
+    "registration_url": null,
     "last_checked": "2026-11-04"
   }
 ]

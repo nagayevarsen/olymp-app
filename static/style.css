@@ -147,8 +147,8 @@ body {
 
 .tabs {
   display: grid;
-  /* Вкладке «Подготовка» нужно больше места, чем остальным. */
-  grid-template-columns: 0.9fr 0.7fr 1.3fr 0.7fr;
+  /* Вкладке «Скоро закроется» нужно больше места, чем остальным. */
+  grid-template-columns: 1.6fr 1fr 1fr;
   gap: 6px;
   margin-bottom: 16px;
 }
@@ -200,23 +200,6 @@ body {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-}
-
-/* На iPhone поле даты не сжимается по ширине колонки и наезжает на соседнее.
-   Поэтому снимаем системный вид и отдаём этому полю всю строку. */
-input[type="date"].field {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  max-width: 100%;
-}
-
-input[type="date"].field::-webkit-date-and-time-value {
-  text-align: left;
-}
-
-#date-field {
-  grid-column: 1 / -1;
 }
 
 .segments {
@@ -336,20 +319,98 @@ input[type="date"].field::-webkit-date-and-time-value {
 
 .event-card {
   min-width: 0;
-  padding: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
   overflow-wrap: anywhere;
-  animation: card-appear 0.18s ease-out;
 }
 
-@keyframes card-appear {
+/* Краткая часть карточки: на неё нажимают, чтобы открыть подробности. */
+.card-summary {
+  display: block;
+  padding: 16px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.card-summary::-webkit-details-marker {
+  display: none;
+}
+
+.card-more {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.card-more::after {
+  content: " ▾";
+}
+
+.event-card[open] .card-more {
+  display: none;
+}
+
+.card-body {
+  padding: 0 16px 16px;
+  animation: card-open 0.18s ease-out;
+}
+
+@keyframes card-open {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(-4px);
   }
+}
+
+.registration {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.registration-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--soft);
+  font-weight: 600;
+}
+
+.button-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  text-align: center;
+  text-decoration: none;
+}
+
+.card-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.card-section-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.card-section-label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.card-links-column {
+  flex-direction: column;
+  margin-top: 0;
 }
 
 /* Цветная полоска срочности на краю карточки. */
@@ -402,23 +463,6 @@ input[type="date"].field::-webkit-date-and-time-value {
   padding-block: 4px;
   color: var(--accent);
   font-weight: 600;
-}
-
-.past-editions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.past-editions-label {
-  display: grid;
-  gap: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.past-editions .field {
-  font-weight: 400;
 }
 
 .event-checked {

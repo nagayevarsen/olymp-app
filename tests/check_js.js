@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 Object.assign(globalThis, require("../static/dates.js"));
-const { eventsForTab, matchesFilters, emptyFilters, archivesForFilters } = require("../static/filters.js");
+const { eventsForTab, matchesFilters, emptyFilters } = require("../static/filters.js");
 
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, "date_cases.json"), "utf-8"));
 let failures = 0;
@@ -57,16 +57,6 @@ check("тип не совпал", passes({}, { type: "contest" }), false);
 check("формат не совпал", passes({}, { format: "offline" }), false);
 check("сезон совпал", passes({}, { season: "2026-2027" }), true);
 check("сезон не совпал", passes({}, { season: "2025-2026" }), false);
-check("у материала нет сезона", passes({ season: null }, { season: "2025-2026" }), true);
-
-// Дата: регистрация должна быть открыта именно в этот день.
-check("дата внутри регистрации", passes({}, { date: "2026-11-15" }), true);
-check("дата в день начала", passes({}, { date: "2026-11-01" }), true);
-check("дата в день дедлайна", passes({}, { date: "2026-11-20" }), true);
-check("дата до начала", passes({}, { date: "2026-10-31" }), false);
-check("дата после дедлайна", passes({}, { date: "2026-11-21" }), false);
-check("дедлайн неизвестен", passes({ registration_deadline: null }, { date: "2026-11-15" }), false);
-check("у материала нет регистрации", passes({ type: "material" }, { date: "2026-11-15" }), false);
 
 // Стоимость. Цена выбирается как верхняя граница, поэтому цена 2000 входит и в «до 5000».
 check("бесплатно подходит", passes({ fee_kzt: 0 }, { cost: "free" }), true);
@@ -96,30 +86,8 @@ function idsFor(tab, filterChanges = {}, saved = []) {
 
 check("вкладка 14 дней", idsFor("closing"), ["red"]);
 check("вкладка всё без закрытых и материалов", idsFor("all"), ["red", "later", "soon"]);
-check("вкладка подготовка", idsFor("prepare"), ["material"]);
-check("подготовка не зависит от даты", idsFor("prepare", { date: "2026-12-02" }), ["material"]);
-check("14 дней считаются от выбранной даты", idsFor("closing", { date: "2026-12-02" }), ["soon"]);
-check("вкладка всё с датой", idsFor("all", { date: "2026-12-02" }), ["later", "soon"]);
-check("прошлая дата не возвращает закрытое", idsFor("all", { date: "2026-11-05" }), ["red", "later", "soon"]);
 check("мои показывают и закрытое", idsFor("saved", { grade: 11 }, ["closed", "red"]), ["red", "closed"]);
-
-// Часть 4. Задания прошлых лет.
-const archives = [
-  { id: "a2025", title: "Олимпиада", stage: null, subjects: ["math"], grade_from: 7, grade_to: 9, region: "kazakhstan", season: "2025-2026" },
-  { id: "a2024", title: "Турнир", stage: null, subjects: ["physics"], grade_from: 10, grade_to: 11, region: "international", season: "2024-2025" },
-];
-
-function archiveIds(filterChanges) {
-  return archivesForFilters(archives, { ...emptyFilters(), ...filterChanges }).map((item) => item.id);
-}
-
-check("архив без фильтров", archiveIds({}), ["a2025", "a2024"]);
-check("архив по учебному году", archiveIds({ season: "2024-2025" }), ["a2024"]);
-check("архив по классу", archiveIds({ grade: 8 }), ["a2025"]);
-check("архив по предмету", archiveIds({ subjects: ["physics"] }), ["a2024"]);
-check("архив по разделу", archiveIds({ region: "kazakhstan" }), ["a2025"]);
-check("архив по названию", archiveIds({ search: "турнир" }), ["a2024"]);
-check("цена и дата не влияют на архив", archiveIds({ cost: "free", date: "2026-12-01", format: "online" }), ["a2025", "a2024"]);
+check("материал не показывается в мои отдельно", idsFor("saved", {}, ["material"]), []);
 
 if (failures > 0) {
   console.log(`Ошибок: ${failures}`);

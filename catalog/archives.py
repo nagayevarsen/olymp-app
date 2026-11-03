@@ -1,6 +1,7 @@
 """Задания прошлых лет из файла archives.json.
 
-Здесь хранятся только факты и ссылки на официальные страницы.
+Каждая запись связана с олимпиадой или конкурсом через series_id и показывается
+внутри их карточки. Здесь хранятся только факты и ссылки на официальные страницы.
 Сами задания мы не копируем: они принадлежат организаторам.
 """
 
@@ -8,16 +9,11 @@ import json
 from pathlib import Path
 
 from catalog.dates import parse_date
-from catalog.events import (
-    HOME_COUNTRY, SUBJECTS, is_filled_text, is_valid_grade, is_valid_season, is_valid_url,
-)
+from catalog.events import is_filled_text, is_valid_season, is_valid_url
 
 ARCHIVES_FILE = Path(__file__).parent.parent / "data" / "archives.json"
 
-REQUIRED_FIELDS = (
-    "id", "title", "stage", "series_id", "subjects", "grade_from", "grade_to",
-    "country", "season", "tasks_url", "solutions_url", "last_checked",
-)
+REQUIRED_FIELDS = ("id", "series_id", "stage", "season", "tasks_url", "solutions_url", "last_checked")
 
 
 def check_archive(item):
@@ -30,18 +26,9 @@ def check_archive(item):
         return ["нет полей: " + ", ".join(missing)]
 
     errors = []
-    for field in ("id", "title", "country"):
+    for field in ("id", "series_id"):
         if not is_filled_text(item[field]):
             errors.append(f"поле {field} должно быть непустым текстом")
-
-    subjects = item["subjects"]
-    if not isinstance(subjects, list) or not subjects or any(s not in SUBJECTS for s in subjects):
-        errors.append("subjects должен быть непустым списком известных предметов")
-
-    if not (is_valid_grade(item["grade_from"]) and is_valid_grade(item["grade_to"])):
-        errors.append("классы должны быть числами от 1 до 12")
-    elif item["grade_from"] > item["grade_to"]:
-        errors.append("класс «от» больше класса «до»")
 
     # Задания всегда относятся к конкретному учебному году.
     if not is_valid_season(item["season"]):
@@ -79,10 +66,22 @@ def read_archives(path=ARCHIVES_FILE):
 def get_archives(path=ARCHIVES_FILE):
     """Возвращает записи для приложения: сначала самые новые учебные годы."""
     items, _errors = read_archives(path)
-    result = []
-    for item in items:
-        region = "kazakhstan" if item["country"].strip() == HOME_COUNTRY else "international"
-        result.append({**item, "region": region})
-    result.sort(key=lambda item: item["title"])
-    result.sort(key=lambda item: item["season"], reverse=True)
-    return result
+    items.sort(key=lambda item: item["stage"] or "")
+    items.sort(key=lambda item: item["season"], reverse=True)
+    return items
+
+
+def find_unlinked(events, archives):
+    """Находит записи, которые нигде не покажутся, потому что не связаны с событием."""
+    series = {
+        event["series_id"] for event in events
+        if event["type"] != "material" and event.get("series_id")
+    }
+    problems = []
+    for item in archives:
+        if item["series_id"] not in series:
+            problems.append(f"Архив {item['id']}: нет события с series_id {item['series_id']}")
+    for event in events:
+        if event["type"] == "material" and event.get("series_id") not in series:
+            problems.append(f"Материал {event['id']}: не связан ни с одним событием через series_id")
+    return problems

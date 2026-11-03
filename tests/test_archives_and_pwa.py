@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 import app as app_module
-from catalog.archives import check_archive, get_archives, read_archives
+from catalog.archives import check_archive, find_unlinked, get_archives, read_archives
+from catalog.events import read_catalog
 
 ROOT = Path(__file__).parent.parent
 
@@ -17,13 +18,8 @@ def make_archive(**changes):
     """Создаёт правильную запись архива. В тесте меняем только нужные поля."""
     item = {
         "id": "archive",
-        "series_id": None,
-        "title": "Олимпиада",
+        "series_id": "olympiad",
         "stage": None,
-        "subjects": ["math"],
-        "grade_from": 7,
-        "grade_to": 9,
-        "country": "Казахстан",
         "season": "2025-2026",
         "tasks_url": "https://example.org/tasks",
         "solutions_url": None,
@@ -40,12 +36,11 @@ def test_correct_archive_has_no_errors():
 @pytest.mark.parametrize(
     "changes",
     [
+        pytest.param({"series_id": None}, id="задания не связаны с олимпиадой"),
         pytest.param({"season": None}, id="нет учебного года"),
         pytest.param({"tasks_url": None}, id="нет ссылки на задания"),
         pytest.param({"tasks_url": "javascript:alert(1)"}, id="опасная ссылка"),
         pytest.param({"solutions_url": "решения"}, id="неверная ссылка на решения"),
-        pytest.param({"subjects": ["Физика"]}, id="неизвестный предмет"),
-        pytest.param({"grade_from": 10}, id="классы перепутаны"),
         pytest.param({"last_checked": "03-15"}, id="дата проверки без года"),
     ],
 )
@@ -63,6 +58,22 @@ def test_archives_are_sorted_newest_first(tmp_path):
 def test_real_archives_have_no_errors():
     _items, errors = read_archives()
     assert errors == []
+
+
+def test_real_data_has_no_unlinked_records():
+    """Несвязанные задания и материалы нигде не покажутся."""
+    events, _errors, _warnings = read_catalog()
+    archives, _errors = read_archives()
+    assert find_unlinked(events, archives) == []
+
+
+def test_unlinked_records_are_found():
+    events = [
+        {"id": "olympiad", "type": "olympiad", "series_id": "linked"},
+        {"id": "material", "type": "material", "series_id": None},
+    ]
+    problems = find_unlinked(events, [make_archive(id="lost", series_id="unknown")])
+    assert len(problems) == 2
 
 
 def test_api_includes_archives():

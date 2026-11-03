@@ -17,6 +17,7 @@ const state = {
   tab: "closing",
   filters: emptyFilters(),
   savedIds: [],
+  openIds: new Set(), // какие карточки сейчас раскрыты
   today: todayKz(),
 };
 
@@ -49,11 +50,11 @@ function writeStored(key, value) {
   }
 }
 
-// Восстанавливает условия поиска. Дату и текст поиска не запоминаем:
-// они нужны для одного конкретного поиска.
+// Восстанавливает условия поиска. Текст поиска не запоминаем:
+// он нужен для одного конкретного поиска.
 function loadFilters() {
   const stored = readStored(FILTERS_KEY, {});
-  const filters = { ...emptyFilters(), ...stored, search: "", date: "" };
+  const filters = { ...emptyFilters(), ...stored, search: "" };
   if (!Array.isArray(filters.subjects)) filters.subjects = [];
   // Раньше в типах был «учебный материал»: такой сохранённый выбор больше не действует.
   if (filters.type === "material") filters.type = "";
@@ -61,7 +62,7 @@ function loadFilters() {
 }
 
 function saveFilters() {
-  const { search, date, ...toRemember } = state.filters;
+  const { search, ...toRemember } = state.filters;
   writeStored(FILTERS_KEY, toRemember);
 }
 
@@ -119,7 +120,6 @@ function updateClock() {
   const newToday = todayKz(now);
   if (newToday !== state.today) {
     state.today = newToday;
-    byId("date").min = newToday;
     updateOfflineNote();
     render();
   }
@@ -145,10 +145,10 @@ function updateThemeButton() {
 
 // ---------- Сохранение ----------
 
-// Все этапы той же олимпиады. Если олимпиада одна, в списке будет только она сама.
+// Все этапы той же олимпиады. Если этап один, в списке будет только сама запись.
 function stagesOf(event) {
   if (!event.series_id) return [event];
-  return state.events.filter((other) => other.series_id === event.series_id);
+  return state.events.filter((other) => other.series_id === event.series_id && other.type !== "material");
 }
 
 function setSaved(ids, shouldSave) {
@@ -230,12 +230,29 @@ function makeRow(label, value, className = "event-row") {
 }
 
 // Ссылка на чужой сайт, которая открывается в новой вкладке.
-function makeLink(text, href) {
-  const link = makeElement("a", "event-link", text);
+function makeLink(text, href, className = "event-link") {
+  const link = makeElement("a", className, text);
   link.href = href;
   link.target = "_blank";
   link.rel = "noopener noreferrer"; // чужой сайт не получит доступа к нашей вкладке
   return link;
+}
+
+// Блок регистрации: кнопка на официальный сайт или понятное объяснение, почему её нет.
+function makeRegistration(event, status) {
+  const box = makeElement("div", "registration");
+  if (status === "open") {
+    box.append(makeLink(t("register"), event.registration_url || event.source_url, "button button-primary"));
+    box.append(makeElement("p", "note", t("register_note")));
+  } else if (status === "soon") {
+    const text = isValidDate(event.registration_start)
+      ? `${t("status_soon")}. ${t("opens_on")}: ${formatDate(event.registration_start)}`
+      : t("status_soon");
+    box.append(makeElement("p", "registration-note", text));
+  } else {
+    box.append(makeElement("p", "registration-note", t(`status_${status}`)));
+  }
+  return box;
 }
 
 // Ссылки на задания и решения одной записи архива.
@@ -246,17 +263,17 @@ function makeArchiveLinks(item) {
   return links;
 }
 
-// Список «Прошлые олимпиады» в карточке: можно выбрать любой год и этап.
-// Возвращает null, если прошлых заданий этой олимпиады в архиве нет.
+// Задания прошлых лет: можно выбрать любой период. Если заданий нет, возвращает null.
 function makePastEditions(event) {
   if (!event.series_id) return null;
   const editions = state.archives.filter((item) => item.series_id === event.series_id);
   if (editions.length === 0) return null;
 
-  const box = makeElement("div", "past-editions");
-  const label = makeElement("label", "past-editions-label");
-  label.append(makeElement("span", "", t("past_editions")));
+  const box = makeElement("div", "card-section");
+  box.append(makeElement("h3", "card-section-title", t("past_tasks")));
 
+  const label = makeElement("label", "card-section-label");
+  label.append(makeElement("span", "", t(`period_${event.type}`)));
   const select = makeElement("select", "field");
   editions.forEach((item) => {
     const text = item.stage ? `${item.season} · ${item.stage}` : item.season;
@@ -267,94 +284,91 @@ function makePastEditions(event) {
   label.append(select);
   box.append(label);
 
-  // Сразу показываем самый новый выпуск, а при выборе меняем ссылки.
+  // Сразу показываем самый новый период, а при выборе меняем ссылки.
   let links = makeArchiveLinks(editions[0]);
   box.append(links);
   select.addEventListener("change", () => {
-    const chosen = editions.find((item) => item.id === select.value);
-    const newLinks = makeArchiveLinks(chosen);
+    const newLinks = makeArchiveLinks(editions.find((item) => item.id === select.value));
     links.replaceWith(newLinks);
     links = newLinks;
   });
   return box;
 }
 
-// Карточка заданий прошлых лет. Ссылки ведут на сайт организатора.
-function makeArchiveCard(item) {
-  const card = makeElement("article", "event-card");
-  const badges = makeElement("div", "badges");
-  if (item.is_example) badges.append(makeElement("span", "badge badge-example", t("example_badge")));
-  badges.append(makeElement("span", "badge", t("archive_badge")));
-  badges.append(makeElement("span", "badge", item.season));
-  card.append(badges);
+// Учебные материалы этой олимпиады. Если их нет, возвращает null.
+function makeMaterials(event) {
+  if (!event.series_id) return null;
+  const materials = state.events.filter((other) => other.type === "material" && other.series_id === event.series_id);
+  if (materials.length === 0) return null;
 
-  card.append(makeElement("h2", "event-title", item.title));
-  if (item.stage) card.append(makeElement("p", "event-stage", item.stage));
-  card.append(makeElement("p", "event-row", item.subjects.map((subject) => t(`subject_${subject}`)).join(", ")));
-  card.append(makeElement("p", "event-row", `${t("grades")}: ${item.grade_from}–${item.grade_to} · ${item.country}`));
-
-  card.append(makeArchiveLinks(item));
-
-  card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(item.last_checked)}`));
-  return card;
+  const box = makeElement("div", "card-section");
+  box.append(makeElement("h3", "card-section-title", t("materials")));
+  const links = makeElement("div", "card-links card-links-column");
+  materials.forEach((material) => links.append(makeLink(material.title, material.source_url)));
+  box.append(links);
+  return box;
 }
 
+// Собирает карточку: сверху краткая часть, а по нажатию открываются подробности.
 function makeCard(event) {
-  const card = makeElement("article", "event-card");
-  const isMaterial = event.type === "material";
-  // Статус считаем заново в браузере, поэтому офлайн он тоже будет верным.
-  const status = isMaterial
-    ? null
-    : getStatus(event.registration_start, event.registration_deadline, state.today);
+  const card = makeElement("details", "event-card");
+  card.open = state.openIds.has(event.id);
+  card.addEventListener("toggle", () => {
+    if (card.open) state.openIds.add(event.id);
+    else state.openIds.delete(event.id);
+  });
 
+  // Статус считаем заново в браузере, поэтому офлайн он тоже будет верным.
+  const status = getStatus(event.registration_start, event.registration_deadline, state.today);
+
+  const summary = makeElement("summary", "card-summary");
   const badges = makeElement("div", "badges");
   if (event.is_example) badges.append(makeElement("span", "badge badge-example", t("example_badge")));
   badges.append(makeElement("span", "badge", t(`type_${event.type}`)));
-  if (status) badges.append(makeElement("span", `badge status-${status}`, t(`status_${status}`)));
+  badges.append(makeElement("span", `badge status-${status}`, t(`status_${status}`)));
   // Метку срочности показываем только у открытых событий.
   if (status === "open") {
     const days = daysUntil(event.registration_deadline, state.today);
     const text = days === 0 ? t("last_day") : `${t("days_left")}: ${days}`;
     const color = getUrgency(event.registration_deadline, state.today);
-    if (color) {
-      badges.append(makeElement("span", `badge urgency-${color}`, text));
-      card.classList.add(`card-${color}`); // цветная полоска на краю карточки
-    }
+    badges.append(makeElement("span", `badge urgency-${color}`, text));
+    card.classList.add(`card-${color}`); // цветная полоска на краю карточки
   }
-  card.append(badges);
+  summary.append(badges);
+  summary.append(makeElement("h2", "event-title", event.title));
+  if (event.stage) summary.append(makeElement("p", "event-stage", event.stage));
+  summary.append(makeRow("deadline", formatDate(event.registration_deadline), "event-row event-deadline"));
+  summary.append(makeElement("span", "card-more", t("details")));
+  card.append(summary);
 
-  card.append(makeElement("h2", "event-title", event.title));
-  if (event.stage) card.append(makeElement("p", "event-stage", event.stage));
-  card.append(makeElement("p", "event-summary", event.summary));
-
-  const subjects = event.subjects.map((subject) => t(`subject_${subject}`)).join(", ");
-  card.append(makeElement("p", "event-row", subjects));
-  card.append(makeElement(
+  const body = makeElement("div", "card-body");
+  body.append(makeRegistration(event, status));
+  body.append(makeElement("p", "event-summary", event.summary));
+  body.append(makeElement("p", "event-row", event.subjects.map((subject) => t(`subject_${subject}`)).join(", ")));
+  body.append(makeElement(
     "p",
     "event-row",
     `${t("grades")}: ${event.grade_from}–${event.grade_to} · ${event.country} · ${t(`format_${event.format}`)}`,
   ));
   const ageText = formatAge(event);
-  if (ageText) card.append(makeRow("age", ageText));
-  if (event.season) card.append(makeRow("season", event.season));
-  card.append(makeRow("fee", formatFee(event.fee_kzt)));
-
-  // У учебных материалов нет дат регистрации.
-  if (!isMaterial) {
-    card.append(makeRow("registration_start", formatDate(event.registration_start)));
-    card.append(makeRow("deadline", formatDate(event.registration_deadline), "event-row event-deadline"));
-    card.append(makeRow("event_date", formatDate(event.event_date)));
-  }
+  if (ageText) body.append(makeRow("age", ageText));
+  if (event.season) body.append(makeRow("season", event.season));
+  body.append(makeRow("fee", formatFee(event.fee_kzt)));
+  body.append(makeRow("registration_start", formatDate(event.registration_start)));
+  body.append(makeRow("event_date", formatDate(event.event_date)));
 
   const links = makeElement("div", "card-links");
   links.append(makeLink(t("official_source"), event.source_url));
-  card.append(links);
-
-  card.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(event.last_checked)}`));
+  body.append(links);
+  body.append(makeElement("p", "event-checked", `${t("checked")}: ${formatDate(event.last_checked)}`));
 
   const pastEditions = makePastEditions(event);
-  if (pastEditions) card.append(pastEditions);
-  card.append(makeSaveButtons(event));
+  if (pastEditions) body.append(pastEditions);
+  const materials = makeMaterials(event);
+  if (materials) body.append(materials);
+
+  body.append(makeSaveButtons(event));
+  card.append(body);
   return card;
 }
 
@@ -369,32 +383,16 @@ function fillSelect(id, options) {
   }));
 }
 
-// Заполняет список учебных годов для текущей вкладки. В «Подготовке» это годы
-// прошлых олимпиад, а на остальных вкладках только годы действующих событий.
-function updateSeasonOptions() {
-  const isPrepareTab = state.tab === "prepare";
-  const records = isPrepareTab
-    ? state.archives
-    : state.events.filter((event) => event.type !== "material");
-  const seasons = [...new Set(records.map((record) => record.season).filter(Boolean))].sort().reverse();
-
-  fillSelect("season", [["", t("any")], ...seasons.map((season) => [season, season])]);
-  byId("season-label").textContent = t(isPrepareTab ? "filter_season_past" : "filter_season");
-
-  // Год с другой вкладки здесь недоступен: сбрасываем его, иначе список будет пустым.
-  if (!seasons.includes(state.filters.season)) {
-    state.filters.season = "";
-    saveFilters();
-  }
-  byId("season").value = state.filters.season;
-}
-
-// Заполняет списки. Предметы берём из самого каталога.
+// Заполняет списки формы.
 function buildForm() {
   const grades = Array.from({ length: 12 }, (_, index) => String(index + 1));
   fillSelect("grade", [["", t("any")], ...grades.map((grade) => [grade, grade])]);
 
-  updateSeasonOptions();
+  const seasons = state.events.filter((event) => event.type !== "material").map((event) => event.season);
+  const uniqueSeasons = [...new Set(seasons.filter(Boolean))].sort().reverse();
+  fillSelect("season", [["", t("any")], ...uniqueSeasons.map((season) => [season, season])]);
+  // Сохранённого года больше нет в каталоге: сбрасываем его, иначе список будет пустым.
+  if (!uniqueSeasons.includes(state.filters.season)) state.filters.season = "";
 
   fillSelect("type", [["", t("any")], ...["olympiad", "contest"].map((type) => [type, t(`type_${type}`)])]);
   fillSelect("format", [["", t("any")], ...["offline", "online"].map((format) => [format, t(`format_${format}`)])]);
@@ -417,8 +415,6 @@ function buildForm() {
     });
     return chip;
   }));
-
-  byId("date").min = state.today;
 }
 
 // Показывает значения из state в полях формы.
@@ -427,7 +423,6 @@ function showFiltersInForm() {
   byId("search").value = filters.search;
   byId("grade").value = filters.grade === null ? "" : String(filters.grade);
   byId("age").value = filters.age === null ? "" : String(filters.age);
-  byId("date").value = filters.date;
   byId("season").value = filters.season;
   byId("type").value = filters.type;
   byId("format").value = filters.format;
@@ -442,7 +437,6 @@ function readFiltersFromForm() {
   filters.grade = byId("grade").value === "" ? null : Number(byId("grade").value);
   const age = byId("age").valueAsNumber;
   filters.age = Number.isInteger(age) ? age : null;
-  filters.date = byId("date").value;
   filters.season = byId("season").value;
   filters.type = byId("type").value;
   filters.format = byId("format").value;
@@ -464,9 +458,7 @@ function resetFilters() {
 
 // Считает выбранные условия для подписи на кнопке «Фильтры».
 function countActiveFilters() {
-  // Во вкладке «Подготовка» часть полей скрыта, их не считаем.
-  const used = state.tab === "prepare" ? prepareOnly(state.filters) : state.filters;
-  const { search, region, subjects, ...others } = used;
+  const { search, region, subjects, ...others } = state.filters;
   const filled = Object.values(others).filter((value) => value !== "" && value !== null).length;
   return filled + subjects.length;
 }
@@ -494,34 +486,29 @@ function render() {
   });
 
   byId("search-form").hidden = isSavedTab;
-  // У материалов и заданий нет регистрации, поэтому лишние поля скрываем.
-  const isPrepareTab = tab === "prepare";
-  ["date-field", "age-field", "type-field", "format-field", "cost-field"].forEach((id) => {
-    byId(id).hidden = isPrepareTab;
-  });
-  byId("price-field").hidden = isPrepareTab || filters.cost !== "paid";
+  byId("price-field").hidden = filters.cost !== "paid";
+  // Подпись периода зависит от выбранного типа: олимпиада или конкурс.
+  byId("season-label").textContent = t(filters.type ? `period_${filters.type}` : "period_any");
 
   const count = countActiveFilters();
   byId("filter-count").hidden = count === 0;
   byId("filter-count").textContent = String(count);
 
   const found = eventsForTab(state.events, tab, filters, state.today, state.savedIds);
-  const archives = isPrepareTab ? archivesForFilters(state.archives, filters) : [];
-  byId("event-list").replaceChildren(...archives.map(makeArchiveCard), ...found.map(makeCard));
+  byId("event-list").replaceChildren(...found.map(makeCard));
 
   byId("transfer").hidden = !isSavedTab || state.savedIds.length === 0;
 
-  const total = found.length + archives.length;
   const hasFilters = count > 0 || filters.search !== "" || filters.region !== "";
-  const isEmpty = total === 0;
+  const isEmpty = found.length === 0;
   byId("empty-reset").hidden = !(isEmpty && !isSavedTab && hasFilters);
 
   if (isEmpty) {
     byId("message").textContent = t(`empty_${tab}`);
   } else if (tab === "closing") {
-    byId("message").textContent = `${t("title_closing")}. ${t("found")}: ${total}`;
+    byId("message").textContent = `${t("title_closing")}. ${t("found")}: ${found.length}`;
   } else {
-    byId("message").textContent = `${t("found")}: ${total}`;
+    byId("message").textContent = `${t("found")}: ${found.length}`;
   }
 }
 
@@ -554,7 +541,6 @@ function connectEvents() {
       state.tab = button.dataset.tab;
       byId("transfer-note").textContent = "";
       byId("transfer-link").hidden = true;
-      updateSeasonOptions();
       render();
     });
   });
