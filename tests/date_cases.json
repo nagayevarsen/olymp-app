@@ -1,0 +1,60 @@
+{
+  "today": "2026-11-10",
+  "today_kz": [
+    {"name": "вечер в Казахстане, ещё тот же день", "utc": "2026-11-04T18:59:59+00:00", "expected": "2026-11-04"},
+    {"name": "полночь в Казахстане, уже новый день", "utc": "2026-11-04T19:00:00+00:00", "expected": "2026-11-05"},
+    {"name": "новый год наступает в Казахстане раньше", "utc": "2026-12-31T19:00:00+00:00", "expected": "2027-01-01"}
+  ],
+  "parse_date": [
+    {"name": "правильная дата", "text": "2026-11-10", "valid": true},
+    {"name": "29 февраля в високосный год", "text": "2028-02-29", "valid": true},
+    {"name": "дата без года", "text": "03-15", "valid": false},
+    {"name": "дата без года с точкой", "text": "15.03", "valid": false},
+    {"name": "день и месяц стоят первыми", "text": "15-03-2026", "valid": false},
+    {"name": "формат с точками", "text": "15.03.2026", "valid": false},
+    {"name": "нет ведущих нулей", "text": "2026-3-5", "valid": false},
+    {"name": "формат без дефисов", "text": "20261110", "valid": false},
+    {"name": "несуществующий день", "text": "2026-02-30", "valid": false},
+    {"name": "несуществующий месяц", "text": "2026-13-01", "valid": false},
+    {"name": "29 февраля в обычный год", "text": "2026-02-29", "valid": false},
+    {"name": "лишний пробел", "text": " 2026-11-10", "valid": false},
+    {"name": "пустая строка", "text": "", "valid": false},
+    {"name": "значения нет", "text": null, "valid": false}
+  ],
+  "status": [
+    {"name": "дедлайн был вчера", "start": "2026-10-01", "deadline": "2026-11-09", "expected": "closed"},
+    {"name": "дедлайн сегодня", "start": "2026-10-01", "deadline": "2026-11-10", "expected": "open"},
+    {"name": "дедлайн завтра", "start": "2026-10-01", "deadline": "2026-11-11", "expected": "open"},
+    {"name": "регистрация начинается сегодня", "start": "2026-11-10", "deadline": "2026-12-01", "expected": "open"},
+    {"name": "регистрация начинается завтра", "start": "2026-11-11", "deadline": "2026-12-01", "expected": "soon"},
+    {"name": "начало в будущем, дедлайна нет", "start": "2026-11-15", "deadline": null, "expected": "soon"},
+    {"name": "начало не указано, дедлайн впереди", "start": null, "deadline": "2026-12-01", "expected": "open"},
+    {"name": "начало не указано, дедлайн прошёл", "start": null, "deadline": "2026-11-01", "expected": "closed"},
+    {"name": "начало уже было, дедлайна нет", "start": "2026-10-01", "deadline": null, "expected": "unannounced"},
+    {"name": "дат нет совсем", "start": null, "deadline": null, "expected": "unannounced"},
+    {"name": "дедлайн без года", "start": "2026-10-01", "deadline": "03-15", "expected": "unannounced"},
+    {"name": "несуществующий дедлайн", "start": "2026-10-01", "deadline": "2026-02-30", "expected": "unannounced"},
+    {"name": "начало без года, дедлайн впереди", "start": "03-15", "deadline": "2026-12-01", "expected": "open"},
+    {"name": "начало в будущем, но дедлайн прошёл", "start": "2026-12-01", "deadline": "2026-11-01", "expected": "closed"}
+  ],
+  "urgency": [
+    {"name": "сегодня последний день", "deadline": "2026-11-10", "expected": "red"},
+    {"name": "осталось 2 дня", "deadline": "2026-11-12", "expected": "red"},
+    {"name": "осталось 3 дня", "deadline": "2026-11-13", "expected": "yellow"},
+    {"name": "осталось 6 дней", "deadline": "2026-11-16", "expected": "yellow"},
+    {"name": "осталось 7 дней", "deadline": "2026-11-17", "expected": "green"},
+    {"name": "осталось 30 дней", "deadline": "2026-12-10", "expected": "green"},
+    {"name": "дедлайн в следующем году", "today": "2026-12-30", "deadline": "2027-01-01", "expected": "red"},
+    {"name": "дедлайн прошёл", "deadline": "2026-11-09", "expected": null},
+    {"name": "дедлайна нет", "deadline": null, "expected": null},
+    {"name": "дедлайн без года", "deadline": "03-15", "expected": null}
+  ],
+  "closing_soon": [
+    {"name": "дедлайн сегодня", "start": "2026-10-01", "deadline": "2026-11-10", "expected": true},
+    {"name": "осталось 14 дней", "start": "2026-10-01", "deadline": "2026-11-24", "expected": true},
+    {"name": "осталось 15 дней", "start": "2026-10-01", "deadline": "2026-11-25", "expected": false},
+    {"name": "дедлайн прошёл", "start": "2026-10-01", "deadline": "2026-11-09", "expected": false},
+    {"name": "регистрация ещё не началась", "start": "2026-11-12", "deadline": "2026-11-20", "expected": false},
+    {"name": "дедлайна нет", "start": "2026-10-01", "deadline": null, "expected": false}
+  ]
+}

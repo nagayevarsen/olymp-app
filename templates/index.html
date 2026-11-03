@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Поиск олимпиад</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <h1 id="app-title">Поиск олимпиад</h1>
+    <!-- Сюда app.js пишет сообщения: загрузка, ошибка, пустой список. -->
+    <p id="message" role="status">Загрузка…</p>
+    <!-- Сюда app.js добавляет карточки событий. -->
+    <section id="event-list" class="event-list"></section>
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
